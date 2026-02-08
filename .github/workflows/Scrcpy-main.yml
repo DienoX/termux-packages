@@ -1,49 +1,42 @@
-name: Build Scrcpy Dev (aarch64)
+name: Build Scrcpy Dev (Simple)
 
 on:
-  workflow_dispatch: # Uruchamianie ręczne
+  workflow_dispatch:
     inputs:
       force_rebuild:
-        description: 'Wymuś przebudowanie (-f)'
+        description: 'Force rebuild (-f)'
         required: false
         type: boolean
         default: false
 
 jobs:
-  build-scrcpy:
+  build:
     runs-on: ubuntu-latest
     steps:
-      - name: Pobranie kodu (Checkout)
+      - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Czyszczenie miejsca na dysku
+      - name: Clean disk
         run: |
           sudo rm -rf /usr/share/dotnet
           sudo rm -rf /opt/ghc
           sudo rm -rf "/usr/local/share/boost"
 
-      - name: Budowanie scrcpy (zależności pobiorą się same)
+      - name: Build Scrcpy
         run: |
-          # Ustalanie flagi force build
           FORCE_FLAG=""
           if [ "${{ inputs.force_rebuild }}" = "true" ]; then
             FORCE_FLAG="-f"
           fi
-
-          echo "Rozpoczynam budowanie scrcpy..."
           
-          # Skrypt build-package.sh automatycznie przeczyta 'TERMUX_PKG_DEPENDS'
-          # z twojego pliku build.sh i zainstaluje libsdl3 z repozytorium (apt).
+          # Proste wywołanie. Skrypt zobaczy "sdl3" w build.sh i spróbuje go pobrać z APT.
           ./scripts/run-docker.sh ./build-package.sh -a aarch64 $FORCE_FLAG scrcpy
 
-      - name: Weryfikacja plików
-        run: ls -R debs/
-
-      - name: Przesłanie gotowego pliku .deb
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: scrcpy-dev-aarch64
+          name: scrcpy-dev-package
           path: debs/*.deb
           if-no-files-found: error
