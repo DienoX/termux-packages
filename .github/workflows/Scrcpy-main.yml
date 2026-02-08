@@ -1,4 +1,4 @@
-name: Build Scrcpy Dev (Simple)
+name: Build Scrcpy Dev (Max Space)
 
 on:
   workflow_dispatch:
@@ -13,16 +13,25 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout Code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Clean disk
-        run: |
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /opt/ghc
-          sudo rm -rf "/usr/local/share/boost"
+      # --- TO JEST KLUCZOWA ZMIANA ---
+      # Ta akcja usuwa zbędne oprogramowanie z runnera, zwalniając ok. 30GB miejsca.
+      # Jest to niezbędne przy kompilacji ffmpeg/scrcpy.
+      - name: Free Disk Space (Ubuntu)
+        uses: jlumbroso/free-disk-space@main
+        with:
+          # Usuwamy wszystko co zbędne dla kompilacji w C/C++
+          tool-cache: true
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap-storage: true
 
       - name: Build Scrcpy
         run: |
@@ -31,7 +40,9 @@ jobs:
             FORCE_FLAG="-f"
           fi
           
-          # Proste wywołanie. Skrypt zobaczy "sdl3" w build.sh i spróbuje go pobrać z APT.
+          echo "Rozpoczynam budowanie z wolnym miejscem na dysku..."
+          
+          # Uruchomienie budowania w Dockerze
           ./scripts/run-docker.sh ./build-package.sh -a aarch64 $FORCE_FLAG scrcpy
 
       - name: Upload Artifact
